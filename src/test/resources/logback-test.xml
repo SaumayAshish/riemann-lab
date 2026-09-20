@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{28} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        Tests construct many evaluators, so their INFO configuration lines
+        drown the test report. Raise the threshold here only; the application
+        keeps logback.xml and its DEBUG level unchanged.
+    -->
+    <logger name="com.riemannlab" level="WARN"/>
+
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
