@@ -2,6 +2,7 @@ package com.riemannlab.zeta;
 
 import com.riemannlab.core.complex.Complex;
 import com.riemannlab.core.complex.ComplexMath;
+import com.riemannlab.core.numeric.AlternatingSeriesAccelerator;
 
 /**
  * the Dirichlet eta function,
@@ -51,6 +52,27 @@ public final class EtaFunction {
         }
 
         return sum;
+    }
+    /**
+     * Evaluates eta using convergence acceleration instead of naive summation.
+     *
+     * <p>The eta series is {@code a_0 - a_1 + a_2 - ...} with
+     * {@code a_k = (k+1)^-s}, which is exactly the shape
+     * {@link AlternatingSeriesAccelerator} expects. Where
+     * {@link #partialSum} needs 1e15 terms for machine precision on the
+     * critical line, this needs a few dozen.</p>
+     *
+     * @param s     the complex exponent
+     * @param order the acceleration order; higher is more accurate, and must
+     *              grow with {@code |Im(s)|}
+     * @return an approximation of {@code eta(s)}
+     * @throws IllegalArgumentException if {@code order} is out of range
+     */
+    public static Complex acceleratedSum(Complex s, int order) {
+        Complex negatedExponent = Complex.ZERO.subtract(s);
+        return AlternatingSeriesAccelerator.sum(
+                k -> ComplexMath.pow(Complex.ofReal(k + 1), negatedExponent),
+                order);
     }
 
 }
