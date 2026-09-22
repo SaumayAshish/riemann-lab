@@ -12,8 +12,8 @@ package com.riemannlab.core.complex;
  *
  * <p>This is a stateless utility class, deliberately kept separate from
  * {@link Complex}. {@code Complex} is a pure value type carrying only
- * arithmetic; these functions carry precision and branch-cut policy, which is
- * a different concern. The split mirrors {@code java.lang.Math} standing
+ * arithmetic; these functions carry precision and branch-cut policy, which
+ * is a different concern. The split mirrors {@code java.lang.Math} standing
  * apart from {@code java.lang.Double}.</p>
  */
 public final class ComplexMath {
@@ -42,6 +42,7 @@ public final class ComplexMath {
      */
     public static Complex exp(Complex z) {
         double magnitude = Math.exp(z.real());
+
         return new Complex(
                 magnitude * Math.cos(z.imaginary()),
                 magnitude * Math.sin(z.imaginary()));
@@ -97,5 +98,29 @@ public final class ComplexMath {
      */
     public static Complex pow(Complex base, Complex exponent) {
         return exp(exponent.multiply(log(base)));
+    }
+
+    /**
+     * The complex sine, {@code sin(a + bi) = sin(a)cosh(b) + i cos(a)sinh(b)}.
+     *
+     * <p>It follows from the addition formula
+     * {@code sin(x + y) = sin(x)cos(y) + cos(x)sin(y)} together with
+     * {@code cos(ib) = cosh(b)} and {@code sin(ib) = i sinh(b)}, both of which
+     * are Euler's formula read at an imaginary argument.</p>
+     *
+     * <p><strong>It is unbounded.</strong> The real sine never leaves
+     * {@code [-1, 1]}, but {@code cosh(b)} and {@code sinh(b)} both grow like
+     * {@code e^|b| / 2}, so the complex sine grows exponentially away from the
+     * real axis. That growth is why the reflection formula, which divides by
+     * this, is numerically well behaved off the axis rather than badly
+     * behaved.</p>
+     *
+     * @param z the argument
+     * @return the sine of {@code z}
+     */
+    public static Complex sin(Complex z) {
+        return Complex.of(
+                Math.sin(z.real()) * Math.cosh(z.imaginary()),
+                Math.cos(z.real()) * Math.sinh(z.imaginary()));
     }
 }

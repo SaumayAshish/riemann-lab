@@ -2,18 +2,21 @@ package com.riemannlab.core.complex;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies the complex exponential, logarithm and power against known values
- * and against the algebraic laws they must obey.
+ * Verifies the complex exponential, logarithm, power and sine against known
+ * values and against the algebraic laws they must obey.
  *
- * <p>These three functions are what give meaning to {@code n^s} for a complex
+ * <p>The first three are what give meaning to {@code n^s} for a complex
  * exponent, which is the form every term of the Riemann zeta series takes.
- * An error here would corrupt every zeta evaluation in the project.</p>
+ * An error there would corrupt every zeta evaluation in the project. The sine
+ * is needed by the reflection formula for the gamma function, and through it
+ * by the functional equation.</p>
  */
 class ComplexMathTest {
 
@@ -125,8 +128,8 @@ class ComplexMathTest {
         @DisplayName("The principal angle always lies in (-pi, pi]")
         void principalAngleStaysInRange() {
             Complex[] samples = {
-                Complex.of(1, 1), Complex.of(-1, 1), Complex.of(-1, -1),
-                Complex.of(1, -1), Complex.of(0, -5), Complex.of(-3, 0)
+                    Complex.of(1, 1), Complex.of(-1, 1), Complex.of(-1, -1),
+                    Complex.of(1, -1), Complex.of(0, -5), Complex.of(-3, 0)
             };
             for (Complex z : samples) {
                 double angle = ComplexMath.log(z).imaginary();
@@ -203,8 +206,8 @@ class ComplexMathTest {
         @DisplayName("exp(log(z)) = z for any non-zero z")
         void expUndoesLog() {
             Complex[] samples = {
-                Complex.of(3, 2), Complex.of(-1, 4), Complex.of(0.001, -0.002),
-                Complex.of(-5, -5), Complex.ofReal(7), Complex.ofImaginary(-3)
+                    Complex.of(3, 2), Complex.of(-1, 4), Complex.of(0.001, -0.002),
+                    Complex.of(-5, -5), Complex.ofReal(7), Complex.ofImaginary(-3)
             };
             for (Complex z : samples) {
                 assertComplexEquals(z, ComplexMath.exp(ComplexMath.log(z)));
@@ -216,6 +219,58 @@ class ComplexMathTest {
         void logUndoesExpInsideThePrincipalBranch() {
             Complex z = Complex.of(0.7, 1.1);
             assertComplexEquals(z, ComplexMath.log(ComplexMath.exp(z)));
+        }
+    }
+
+    @Nested
+    @DisplayName("Sine")
+    class Sine {
+
+        @Test
+        @DisplayName("On the real axis it is the ordinary sine")
+        void agreesWithTheRealSine() {
+            assertComplexEquals(Complex.ZERO, ComplexMath.sin(Complex.ZERO));
+            assertComplexEquals(Complex.ofReal(1.0),
+                    ComplexMath.sin(Complex.ofReal(Math.PI / 2.0)));
+            assertComplexEquals(Complex.ofReal(0.5),
+                    ComplexMath.sin(Complex.ofReal(Math.PI / 6.0)));
+        }
+
+        @Test
+        @DisplayName("Of a purely imaginary argument it is i times the hyperbolic sine")
+        void imaginaryArgumentGivesSinh() {
+            assertComplexEquals(Complex.ofImaginary(1.1752011936438014),
+                    ComplexMath.sin(Complex.I));
+        }
+
+        @Test
+        @DisplayName("Of one plus i it matches the published value")
+        void knownComplexValue() {
+            assertComplexEquals(
+                    Complex.of(1.2984575814159773, 0.6349639147847361),
+                    ComplexMath.sin(Complex.of(1.0, 1.0)));
+        }
+
+        @Test
+        @DisplayName("It is odd and has period two pi")
+        void oddAndPeriodic() {
+            Complex z = Complex.of(0.7, -1.3);
+
+            assertComplexEquals(
+                    Complex.ZERO.subtract(ComplexMath.sin(z)),
+                    ComplexMath.sin(Complex.ZERO.subtract(z)));
+            assertComplexEquals(ComplexMath.sin(z),
+                    ComplexMath.sin(z.add(Complex.ofReal(2.0 * Math.PI))));
+        }
+
+        @Test
+        @DisplayName("Unlike the real sine it is unbounded away from the real axis")
+        void unboundedOffTheRealAxis() {
+            double atOne = ComplexMath.sin(Complex.of(0.5, 1.0)).magnitude();
+            double atTen = ComplexMath.sin(Complex.of(0.5, 10.0)).magnitude();
+
+            assertTrue(atTen > 1000.0 * atOne,
+                    "expected exponential growth, got " + atOne + " then " + atTen);
         }
     }
 }
