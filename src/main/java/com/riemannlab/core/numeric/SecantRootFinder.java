@@ -140,7 +140,14 @@ public final class SecantRootFinder implements ComplexRootFinder {
                         RootFindingResult.Termination.DIVERGED);
             }
 
-            if (step.magnitude() <= stepTolerance) {
+            // The movement that actually happened, not the movement requested.
+            // Near a root at height t a requested step smaller than ulp(t) is
+            // absorbed by the subtraction above and the iterate does not move
+            // at all. Testing the requested step misses that, and the next
+            // pass then compares the point with itself: the two function
+            // values are bit-identical, the chord slope is exactly zero, and a
+            // converged search is reported as a vanished derivative.
+            if (current.subtract(previous).magnitude() <= stepTolerance) {
                 return new RootFindingResult(iterates,
                         function.apply(current).magnitude(),
                         RootFindingResult.Termination.STEP_BELOW_TOLERANCE);

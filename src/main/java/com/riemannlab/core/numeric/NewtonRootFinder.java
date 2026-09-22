@@ -112,6 +112,7 @@ public final class NewtonRootFinder implements ComplexRootFinder {
             }
 
             Complex step = value.divide(derivative);
+            Complex previous = current;
             current = current.subtract(step);
             iterates.add(current);
 
@@ -122,7 +123,12 @@ public final class NewtonRootFinder implements ComplexRootFinder {
 
             value = function.apply(current);
 
-            if (step.magnitude() <= stepTolerance) {
+            // The movement that actually happened, not the movement requested.
+            // A step smaller than ulp of the iterate is absorbed by the
+            // subtraction above and the point does not move; testing the
+            // requested step would miss that and burn the remaining iterations
+            // recomputing the same point.
+            if (current.subtract(previous).magnitude() <= stepTolerance) {
                 return new RootFindingResult(iterates, value.magnitude(),
                         RootFindingResult.Termination.STEP_BELOW_TOLERANCE);
             }
