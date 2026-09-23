@@ -122,8 +122,10 @@ public final class GammaFunction {
         }
 
         Complex t = shifted.add(Complex.ofReal(LANCZOS_G + 0.5));
-        Complex stirling = ComplexMath.pow(t, shifted.add(Complex.ofReal(0.5)))
-                .multiply(ComplexMath.exp(t.multiply(Complex.ofReal(-1.0))));
+        Complex stirling = ComplexMath.exp(
+                shifted.add(Complex.ofReal(0.5))
+                        .multiply(ComplexMath.log(t))
+                        .subtract(t));
 
         return stirling.multiply(series).multiply(Complex.ofReal(SQRT_TWO_PI));
     }

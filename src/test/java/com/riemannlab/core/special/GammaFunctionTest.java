@@ -220,4 +220,25 @@ class GammaFunctionTest {
             assertThrows(NullPointerException.class, () -> GammaFunction.gamma(null));
         }
     }
+    @Test
+    @DisplayName("Large arguments stay finite up to where gamma itself overflows")
+    void largeArgumentsDoNotOverflowEarly() {
+        // 170! = 7.2574e306 is the largest factorial a double can hold.
+        // Computing t^(w+1/2) and e^(-t) as separate factors fails near
+        // z = 142, long before that, because the first overflows while the
+        // second underflows - and the product of Infinity with a finite
+        // number is Infinity, so the complex multiply returns NaN.
+        Complex atOneSeventyOne = GammaFunction.gamma(Complex.ofReal(171.0));
+
+        assertTrue(Double.isFinite(atOneSeventyOne.real()),
+                "gamma(171) = 170! is representable and must not come back "
+                        + atOneSeventyOne);
+        assertEquals(1.0, atOneSeventyOne.real() / 7.257415615307999e306, 1e-12,
+                "gamma(171) should be 170!");
+
+        for (double x : new double[] {145.0, 160.0, 170.0}) {
+            assertTrue(Double.isFinite(GammaFunction.gamma(Complex.ofReal(x)).real()),
+                    "gamma(" + x + ") came back non-finite");
+        }
+    }
 }
