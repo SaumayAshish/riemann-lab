@@ -24,6 +24,15 @@ import org.junit.jupiter.params.provider.MethodSource;
  * <p>{@code DirichletSeries} is deliberately absent. It is only valid for
  * {@code Re(s) > 1} and would fail the critical-line cases, which is precisely
  * why it does not implement this interface.</p>
+ *
+ * <p><strong>One test is not part of the contract.</strong> The rejection of
+ * {@code Re(s) <= 0} is a property of the eta-based implementations, not an
+ * obligation of the interface - the name of the method that asserts it gives
+ * that away, since <em>eta</em> is an implementation detail with no business
+ * appearing in a test of {@code ZetaEvaluator}. It therefore runs against
+ * {@link #etaBasedEvaluators()} rather than {@link #evaluators()}. The honest
+ * contract is that an evaluator has a domain and fails loudly outside it; the
+ * domain itself varies by implementation.</p>
  */
 class ZetaEvaluatorContractTest {
 
@@ -34,6 +43,21 @@ class ZetaEvaluatorContractTest {
 
     /** Every implementation the interface promises to support. */
     static Stream<ZetaEvaluator> evaluators() {
+        return Stream.of(
+                new AcceleratedEtaEvaluator(),
+                new NaiveEtaEvaluator(20_000),
+                new ContinuedZetaEvaluator());
+    }
+
+    /**
+     * The evaluators whose domain is the eta series' half-plane,
+     * {@code Re(s) > 0}.
+     *
+     * <p>{@code ContinuedZetaEvaluator} is absent because it evaluates the
+     * whole plane through the functional equation. Holding it to this
+     * restriction would be asserting a limitation rather than a contract.</p>
+     */
+    static Stream<ZetaEvaluator> etaBasedEvaluators() {
         return Stream.of(
                 new AcceleratedEtaEvaluator(),
                 new NaiveEtaEvaluator(20_000));
@@ -107,7 +131,7 @@ class ZetaEvaluatorContractTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("evaluators")
+    @MethodSource("etaBasedEvaluators")
     @DisplayName("Arguments outside the eta domain, Re(s) <= 0, are rejected")
     void rejectsArgumentsOutsideTheEtaDomain(ZetaEvaluator evaluator) {
         assertThrows(IllegalArgumentException.class,
