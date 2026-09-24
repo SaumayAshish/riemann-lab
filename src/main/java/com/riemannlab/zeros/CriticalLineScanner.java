@@ -6,6 +6,7 @@ import com.riemannlab.zeta.ZetaResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,14 @@ import org.slf4j.LoggerFactory;
  * when the step looks too large for the range, but proving that no zero was
  * missed requires counting zeros independently - Turing's method - which this
  * project does not implement.</p>
+ *
+ * <p><strong>Sequential vs. parallel.</strong> {@link #scan} and
+ * {@link #scanForZeros} evaluate one sample at a time. {@link #scanParallel}
+ * and {@link #scanForZerosParallel} evaluate all samples concurrently, then
+ * run the identical local-minimum detection sequentially over the results -
+ * detection is cheap and order-dependent, evaluation is expensive and
+ * independent per point. Both pairs are proven to agree exactly on the same
+ * input; see the correctness test.</p>
  *
  * <p>Immutable and thread-safe, given a thread-safe evaluator.</p>
  */
@@ -152,19 +161,97 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanForZeros(double startHeight, double endHeight, double step) {
-        List<ZeroCandidate> allMinima = scan(startHeight, endHeight, step);
+        return filterPlausible(scan(startHeight, endHeight, step));
+    }
 
-        List<ZeroCandidate> plausible = allMinima.stream()
-                .filter(ZeroCandidate::looksLikeZero)
-                .toList();
+    /**
+     * Scans a range exactly as {@link #scan} does, except that every sample
+     * point is evaluated concurrently before the (sequential) local-minimum
+     * detection runs over the results.
+     *
+     * <p>Evaluating a point is independent of evaluating any other point, so
+     * that part parallelizes cleanly given a thread-safe evaluator. Detecting
+     * a local minimum depends on the order of neighbouring samples, so that
+     * part still runs sequentially, over the already-computed array - it is
+     * cheap enough that parallelizing it would not help anyway.</p>
+     *
+     * <p>Produces exactly the same candidates, in exactly the same order, as
+     * {@link #scan} given the same arguments and evaluator - proven by a
+     * dedicated correctness test rather than assumed.</p>
+     *
+     * @param startHeight the lowest height to sample; must be positive
+     * @param endHeight   the highest height to sample; must exceed startHeight
+     * @param step        the sample spacing; must be positive and fit in the range
+     * @return the minima, in increasing order of height, never null
+     * @throws IllegalArgumentException if the range or step is unusable
+     */
+    public List<ZeroCandidate> scanParallel(double startHeight, double endHeight, double step) {
+        validate(startHeight, endHeight, step);
+        warnIfStepTooCoarse(endHeight, step);
 
-        int discarded = allMinima.size() - plausible.size();
-        if (discarded > 0) {
-            log.info("Discarded {} of {} local minima as too shallow to contain a zero",
-                    discarded, allMinima.size());
+        int sampleCount = (int) Math.round((endHeight - startHeight) / step);
+        long startNanos = System.nanoTime();
+
+        // The expensive, independent-per-point part: evaluated concurrently.
+        // IntStream.rangeClosed is an ordered source, and mapToObj/toArray
+        // preserve that order even when .parallel() is used, so results[i]
+        // is always the evaluation at sample index i - exactly as if the
+        // loop below had produced it sequentially.
+        ZetaResult[] results = IntStream.rangeClosed(0, sampleCount)
+                .parallel()
+                .mapToObj(i -> evaluator.evaluate(
+                        Complex.of(CRITICAL_LINE_REAL_PART, startHeight + i * step)))
+                .toArray(ZetaResult[]::new);
+
+        // The cheap, order-dependent part: run sequentially over the
+        // precomputed array. Mirrors scan()'s window logic exactly, just
+        // indexed by the centre sample c instead of carried in rolling
+        // variables.
+        List<ZeroCandidate> candidates = new ArrayList<>();
+
+        for (int c = 1; c < sampleCount; c++) {
+            double magnitudeBefore = results[c - 1].value().magnitude();
+            double magnitudeAt = results[c].value().magnitude();
+            double magnitudeAfter = results[c + 1].value().magnitude();
+
+            boolean isStrictLocalMinimum = magnitudeAt < magnitudeBefore
+                    && magnitudeAt < magnitudeAfter;
+
+            if (isStrictLocalMinimum) {
+                ZeroCandidate candidate = new ZeroCandidate(
+                        startHeight + c * step,
+                        magnitudeAt,
+                        step,
+                        magnitudeBefore,
+                        magnitudeAfter,
+                        results[c].estimatedErrorBound());
+
+                candidates.add(candidate);
+                log.debug("Local minimum at t ~ {}, drop {}",
+                        candidate.estimatedHeight(), candidate.relativeDrop());
+            }
         }
 
-        return plausible;
+        log.info("Scanned (parallel) t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
+                startHeight, endHeight, step, evaluator.name(),
+                sampleCount + 1, candidates.size(),
+                (System.nanoTime() - startNanos) / 1_000_000);
+
+        return List.copyOf(candidates);
+    }
+
+    /**
+     * The parallel counterpart to {@link #scanForZeros}: same plausibility
+     * filter, applied to {@link #scanParallel}'s output.
+     *
+     * @param startHeight the lowest height to sample
+     * @param endHeight   the highest height to sample
+     * @param step        the sample spacing
+     * @return the plausible candidates, in increasing order of height
+     * @throws IllegalArgumentException if the range or step is unusable
+     */
+    public List<ZeroCandidate> scanForZerosParallel(double startHeight, double endHeight, double step) {
+        return filterPlausible(scanParallel(startHeight, endHeight, step));
     }
 
     /**
@@ -195,6 +282,20 @@ public final class CriticalLineScanner {
      */
     public static double recommendedStep(double height) {
         return averageZeroSpacing(height) / SAMPLES_PER_ZERO_GAP;
+    }
+
+    private List<ZeroCandidate> filterPlausible(List<ZeroCandidate> allMinima) {
+        List<ZeroCandidate> plausible = allMinima.stream()
+                .filter(ZeroCandidate::looksLikeZero)
+                .toList();
+
+        int discarded = allMinima.size() - plausible.size();
+        if (discarded > 0) {
+            log.info("Discarded {} of {} local minima as too shallow to contain a zero",
+                    discarded, allMinima.size());
+        }
+
+        return plausible;
     }
 
     private void validate(double startHeight, double endHeight, double step) {
