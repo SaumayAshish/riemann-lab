@@ -19,15 +19,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-/**
- * Baseline throughput of {@link CriticalLineScanner#scanForZeros} over the
- * same range {@code ValidationRunner} uses (t in [1.0, 55.0], step 0.1).
- *
- * <p>This is the "before" in Phase 6's benchmark-optimize-benchmark
- * discipline: captured against the current, unmodified, sequential
- * implementation, before any parallelization work begins, so a later
- * speedup claim has an honest baseline to compare against.</p>
- */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -53,6 +44,12 @@ public class ScanThroughputBenchmark {
     @Benchmark
     public void scanForZeros(ScannerState state, Blackhole blackhole) {
         List<ZeroCandidate> candidates = state.scanner.scanForZeros(SCAN_START, SCAN_END, SCAN_STEP);
+        blackhole.consume(candidates);
+    }
+
+    @Benchmark
+    public void scanForZerosParallel(ScannerState state, Blackhole blackhole) {
+        List<ZeroCandidate> candidates = state.scanner.scanForZerosParallel(SCAN_START, SCAN_END, SCAN_STEP);
         blackhole.consume(candidates);
     }
 }
