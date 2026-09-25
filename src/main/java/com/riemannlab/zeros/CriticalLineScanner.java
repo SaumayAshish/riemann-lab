@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.stream.IntStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Sweeps the critical line {@code Re(s) = 1/2} looking for local minima of
@@ -91,56 +92,59 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scan(double startHeight, double endHeight, double step) {
-        validate(startHeight, endHeight, step);
-        warnIfStepTooCoarse(endHeight, step);
+        MDC.put("scanMode", "sequential");
+        try {
+            validate(startHeight, endHeight, step);
+            warnIfStepTooCoarse(endHeight, step);
 
-        int sampleCount = (int) Math.round((endHeight - startHeight) / step);
-        long startNanos = System.nanoTime();
+            int sampleCount = (int) Math.round((endHeight - startHeight) / step);
+            long startNanos = System.nanoTime();
 
-        List<ZeroCandidate> candidates = new ArrayList<>();
+            List<ZeroCandidate> candidates = new ArrayList<>();
 
-        double magnitudeBefore = Double.NaN;
-        double magnitudeAt = Double.NaN;
-        double errorBoundAt = Double.NaN;
+            double magnitudeBefore = Double.NaN;
+            double magnitudeAt = Double.NaN;
+            double errorBoundAt = Double.NaN;
 
-        for (int i = 0; i <= sampleCount; i++) {
-            // Computed from the index rather than accumulated, so the sample
-            // heights stay exact and the bracket endpoints can be trusted.
-            double t = startHeight + i * step;
+            for (int i = 0; i <= sampleCount; i++) {
+                double t = startHeight + i * step;
 
-            ZetaResult result = evaluator.evaluate(Complex.of(CRITICAL_LINE_REAL_PART, t));
-            double magnitudeAfter = result.value().magnitude();
+                ZetaResult result = evaluator.evaluate(Complex.of(CRITICAL_LINE_REAL_PART, t));
+                double magnitudeAfter = result.value().magnitude();
 
-            boolean haveThreeSamples = i >= 2;
-            boolean isStrictLocalMinimum = haveThreeSamples
-                    && magnitudeAt < magnitudeBefore
-                    && magnitudeAt < magnitudeAfter;
+                boolean haveThreeSamples = i >= 2;
+                boolean isStrictLocalMinimum = haveThreeSamples
+                        && magnitudeAt < magnitudeBefore
+                        && magnitudeAt < magnitudeAfter;
 
-            if (isStrictLocalMinimum) {
-                ZeroCandidate candidate = new ZeroCandidate(
-                        startHeight + (i - 1) * step,
-                        magnitudeAt,
-                        step,
-                        magnitudeBefore,
-                        magnitudeAfter,
-                        errorBoundAt);
+                if (isStrictLocalMinimum) {
+                    ZeroCandidate candidate = new ZeroCandidate(
+                            startHeight + (i - 1) * step,
+                            magnitudeAt,
+                            step,
+                            magnitudeBefore,
+                            magnitudeAfter,
+                            errorBoundAt);
 
-                candidates.add(candidate);
-                log.debug("Local minimum at t ~ {}, drop {}",
-                        candidate.estimatedHeight(), candidate.relativeDrop());
+                    candidates.add(candidate);
+                    log.debug("Local minimum at t ~ {}, drop {}",
+                            candidate.estimatedHeight(), candidate.relativeDrop());
+                }
+
+                magnitudeBefore = magnitudeAt;
+                magnitudeAt = magnitudeAfter;
+                errorBoundAt = result.estimatedErrorBound();
             }
 
-            magnitudeBefore = magnitudeAt;
-            magnitudeAt = magnitudeAfter;
-            errorBoundAt = result.estimatedErrorBound();
+            log.info("Scanned t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
+                    startHeight, endHeight, step, evaluator.name(),
+                    sampleCount + 1, candidates.size(),
+                    (System.nanoTime() - startNanos) / 1_000_000);
+
+            return List.copyOf(candidates);
+        } finally {
+            MDC.remove("scanMode");
         }
-
-        log.info("Scanned t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
-                startHeight, endHeight, step, evaluator.name(),
-                sampleCount + 1, candidates.size(),
-                (System.nanoTime() - startNanos) / 1_000_000);
-
-        return List.copyOf(candidates);
     }
 
     /**
@@ -186,58 +190,54 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanParallel(double startHeight, double endHeight, double step) {
-        validate(startHeight, endHeight, step);
-        warnIfStepTooCoarse(endHeight, step);
+        MDC.put("scanMode", "parallel");
+        try {
+            validate(startHeight, endHeight, step);
+            warnIfStepTooCoarse(endHeight, step);
 
-        int sampleCount = (int) Math.round((endHeight - startHeight) / step);
-        long startNanos = System.nanoTime();
+            int sampleCount = (int) Math.round((endHeight - startHeight) / step);
+            long startNanos = System.nanoTime();
 
-        // The expensive, independent-per-point part: evaluated concurrently.
-        // IntStream.rangeClosed is an ordered source, and mapToObj/toArray
-        // preserve that order even when .parallel() is used, so results[i]
-        // is always the evaluation at sample index i - exactly as if the
-        // loop below had produced it sequentially.
-        ZetaResult[] results = IntStream.rangeClosed(0, sampleCount)
-                .parallel()
-                .mapToObj(i -> evaluator.evaluate(
-                        Complex.of(CRITICAL_LINE_REAL_PART, startHeight + i * step)))
-                .toArray(ZetaResult[]::new);
+            ZetaResult[] results = IntStream.rangeClosed(0, sampleCount)
+                    .parallel()
+                    .mapToObj(i -> evaluator.evaluate(
+                            Complex.of(CRITICAL_LINE_REAL_PART, startHeight + i * step)))
+                    .toArray(ZetaResult[]::new);
 
-        // The cheap, order-dependent part: run sequentially over the
-        // precomputed array. Mirrors scan()'s window logic exactly, just
-        // indexed by the centre sample c instead of carried in rolling
-        // variables.
-        List<ZeroCandidate> candidates = new ArrayList<>();
+            List<ZeroCandidate> candidates = new ArrayList<>();
 
-        for (int c = 1; c < sampleCount; c++) {
-            double magnitudeBefore = results[c - 1].value().magnitude();
-            double magnitudeAt = results[c].value().magnitude();
-            double magnitudeAfter = results[c + 1].value().magnitude();
+            for (int c = 1; c < sampleCount; c++) {
+                double magnitudeBefore = results[c - 1].value().magnitude();
+                double magnitudeAt = results[c].value().magnitude();
+                double magnitudeAfter = results[c + 1].value().magnitude();
 
-            boolean isStrictLocalMinimum = magnitudeAt < magnitudeBefore
-                    && magnitudeAt < magnitudeAfter;
+                boolean isStrictLocalMinimum = magnitudeAt < magnitudeBefore
+                        && magnitudeAt < magnitudeAfter;
 
-            if (isStrictLocalMinimum) {
-                ZeroCandidate candidate = new ZeroCandidate(
-                        startHeight + c * step,
-                        magnitudeAt,
-                        step,
-                        magnitudeBefore,
-                        magnitudeAfter,
-                        results[c].estimatedErrorBound());
+                if (isStrictLocalMinimum) {
+                    ZeroCandidate candidate = new ZeroCandidate(
+                            startHeight + c * step,
+                            magnitudeAt,
+                            step,
+                            magnitudeBefore,
+                            magnitudeAfter,
+                            results[c].estimatedErrorBound());
 
-                candidates.add(candidate);
-                log.debug("Local minimum at t ~ {}, drop {}",
-                        candidate.estimatedHeight(), candidate.relativeDrop());
+                    candidates.add(candidate);
+                    log.debug("Local minimum at t ~ {}, drop {}",
+                            candidate.estimatedHeight(), candidate.relativeDrop());
+                }
             }
+
+            log.info("Scanned (parallel) t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
+                    startHeight, endHeight, step, evaluator.name(),
+                    sampleCount + 1, candidates.size(),
+                    (System.nanoTime() - startNanos) / 1_000_000);
+
+            return List.copyOf(candidates);
+        } finally {
+            MDC.remove("scanMode");
         }
-
-        log.info("Scanned (parallel) t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
-                startHeight, endHeight, step, evaluator.name(),
-                sampleCount + 1, candidates.size(),
-                (System.nanoTime() - startNanos) / 1_000_000);
-
-        return List.copyOf(candidates);
     }
 
     /**
