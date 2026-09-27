@@ -76,6 +76,23 @@ public final class CriticalLineScanner {
     /** A step coarser than spacing divided by this is reported as risky. */
     private static final double RISKY_STEP_DIVISOR = 4.0;
 
+    /** Micrometer metric name for the per-evaluation counter. */
+    public static final String METRIC_EVALUATIONS = "riemannlab.scan.evaluations";
+    /** Micrometer metric name for the per-scan duration timer. */
+    public static final String METRIC_DURATION = "riemannlab.scan.duration";
+    /** Micrometer metric name for the accepted-minima counter. */
+    public static final String METRIC_MINIMA_FOUND = "riemannlab.scan.minima.found";
+    /** Micrometer metric name for the discarded-minima counter. */
+    public static final String METRIC_MINIMA_DISCARDED = "riemannlab.scan.minima.discarded";
+    /** Tag key used to distinguish sequential from parallel scans on every metric. */
+    public static final String TAG_MODE = "mode";
+    /** Tag/MDC value identifying a sequential scan. */
+    public static final String MODE_SEQUENTIAL = "sequential";
+    /** Tag/MDC value identifying a parallel scan. */
+    public static final String MODE_PARALLEL = "parallel";
+
+    private static final String MDC_KEY_SCAN_MODE = "scanMode";
+
     private final ZetaEvaluator evaluator;
     private final MeterRegistry registry;
 
@@ -121,7 +138,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scan(double startHeight, double endHeight, double step) {
-        MDC.put("scanMode", "sequential");
+        MDC.put(MDC_KEY_SCAN_MODE, MODE_SEQUENTIAL);
         try {
             validate(startHeight, endHeight, step);
             warnIfStepTooCoarse(endHeight, step);
@@ -130,7 +147,7 @@ public final class CriticalLineScanner {
             long startNanos = System.nanoTime();
 
             Counter evaluationsCounter =
-                    registry.counter("riemannlab.scan.evaluations", "mode", "sequential");
+                    registry.counter(METRIC_EVALUATIONS, TAG_MODE, MODE_SEQUENTIAL);
 
             List<ZeroCandidate> candidates = new ArrayList<>();
 
@@ -172,7 +189,7 @@ public final class CriticalLineScanner {
             }
 
             long elapsedNanos = System.nanoTime() - startNanos;
-            registry.timer("riemannlab.scan.duration", "mode", "sequential")
+            registry.timer(METRIC_DURATION, TAG_MODE, MODE_SEQUENTIAL)
                     .record(Duration.ofNanos(elapsedNanos));
 
             log.info("Scanned t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
@@ -182,7 +199,7 @@ public final class CriticalLineScanner {
 
             return List.copyOf(candidates);
         } finally {
-            MDC.remove("scanMode");
+            MDC.remove(MDC_KEY_SCAN_MODE);
         }
     }
 
@@ -204,7 +221,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanForZeros(double startHeight, double endHeight, double step) {
-        return filterPlausible(scan(startHeight, endHeight, step), "sequential");
+        return filterPlausible(scan(startHeight, endHeight, step), MODE_SEQUENTIAL);
     }
 
     /**
@@ -229,7 +246,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanParallel(double startHeight, double endHeight, double step) {
-        MDC.put("scanMode", "parallel");
+        MDC.put(MDC_KEY_SCAN_MODE, MODE_PARALLEL);
         try {
             validate(startHeight, endHeight, step);
             warnIfStepTooCoarse(endHeight, step);
@@ -238,7 +255,7 @@ public final class CriticalLineScanner {
             long startNanos = System.nanoTime();
 
             Counter evaluationsCounter =
-                    registry.counter("riemannlab.scan.evaluations", "mode", "parallel");
+                    registry.counter(METRIC_EVALUATIONS, TAG_MODE, MODE_PARALLEL);
 
             // The expensive, independent-per-point part: evaluated concurrently.
             // IntStream.rangeClosed is an ordered source, and mapToObj/toArray
@@ -287,7 +304,7 @@ public final class CriticalLineScanner {
             }
 
             long elapsedNanos = System.nanoTime() - startNanos;
-            registry.timer("riemannlab.scan.duration", "mode", "parallel")
+            registry.timer(METRIC_DURATION, TAG_MODE, MODE_PARALLEL)
                     .record(Duration.ofNanos(elapsedNanos));
 
             log.info("Scanned (parallel) t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
@@ -297,7 +314,7 @@ public final class CriticalLineScanner {
 
             return List.copyOf(candidates);
         } finally {
-            MDC.remove("scanMode");
+            MDC.remove(MDC_KEY_SCAN_MODE);
         }
     }
 
@@ -312,7 +329,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanForZerosParallel(double startHeight, double endHeight, double step) {
-        return filterPlausible(scanParallel(startHeight, endHeight, step), "parallel");
+        return filterPlausible(scanParallel(startHeight, endHeight, step), MODE_PARALLEL);
     }
 
     /**
@@ -356,9 +373,9 @@ public final class CriticalLineScanner {
                     discarded, allMinima.size());
         }
 
-        registry.counter("riemannlab.scan.minima.found", "mode", mode)
+        registry.counter(METRIC_MINIMA_FOUND, TAG_MODE, mode)
                 .increment(allMinima.size());
-        registry.counter("riemannlab.scan.minima.discarded", "mode", mode)
+        registry.counter(METRIC_MINIMA_DISCARDED, TAG_MODE, mode)
                 .increment(discarded);
 
         return plausible;
