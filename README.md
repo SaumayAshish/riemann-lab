@@ -17,7 +17,7 @@ A Java platform for numerically evaluating the Riemann zeta function and investi
 - **Is observable**: structured logging (SLF4J/Logback, MDC-tagged by scan mode) and Micrometer metrics (evaluation counts, scan duration, minima found/discarded), with a reader that turns the metrics back into a human-readable summary.
 
 ## Architecture
-
+'''
 com.riemannlab
 ├── core.complex Complex value type (record) and complex-valued exp/log/pow
 ├── core.numeric Series acceleration, Newton-Raphson and secant root finders
@@ -29,7 +29,7 @@ com.riemannlab
 ├── viz Domain-colouring and critical-line plot rendering
 ├── app.cli Runnable demos exercising each stage of the pipeline
 └── bench JMH benchmarks for evaluator and scanner throughput
-
+'''
 
 The design separates **detection** (cheap, approximate, must not miss anything) from **refinement** (expensive, precise, only runs on plausible candidates) — see the JavaDoc on `CriticalLineScanner` and `ZeroRefiner` for the reasoning.
 
