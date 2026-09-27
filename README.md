@@ -8,16 +8,17 @@ A Java platform for numerically evaluating the Riemann zeta function and investi
 
 ## What it does
 
-- **Evaluates ζ(s) for complex s**, including across the critical strip, via multiple independent strategies (a naive Dirichlet-eta series, an accelerated eta series using Euler transformation, and analytic continuation via the functional equation) — cross-checked against each other rather than trusted blindly.
-- **Scans the critical line** Re(s) = 1/2 for local minima of |ζ(s)|, the numerical signature of a nearby zero, both sequentially and in parallel, with a proven-identical-output correctness guarantee between the two paths.
-- **Refines candidates to machine precision** using complex-valued Newton-Raphson and secant root finders.
-- **Validates itself**: known-zero catalog cross-checks, error-bound honesty checks (does the claimed precision match the actual residual?), and eta-series-vs-functional-equation agreement checks — three independent validation passes, not one.
-- **Visualizes** ζ(s) via domain colouring across the complex plane and plots |ζ(s)| along the critical line, backed by the same live evaluation and zero-finding pipeline used everywhere else (not a separate, unverified rendering path).
-- **Benchmarks itself** with JMH — every performance claim in this project's history is backed by a measured before/after, never an assumption.
-- **Is observable**: structured logging (SLF4J/Logback, MDC-tagged by scan mode) and Micrometer metrics (evaluation counts, scan duration, minima found/discarded), with a reader that turns the metrics back into a human-readable summary.
+* **Evaluates ζ(s) for complex s**, including across the critical strip, via multiple independent strategies (a naive Dirichlet-eta series, an accelerated eta series using Euler transformation, and analytic continuation via the functional equation) — cross-checked against each other rather than trusted blindly.
+* **Scans the critical line** Re(s) = 1/2 for local minima of |ζ(s)|, the numerical signature of a nearby zero, both sequentially and in parallel, with a proven-identical-output correctness guarantee between the two paths.
+* **Refines candidates to machine precision** using complex-valued Newton-Raphson and secant root finders.
+* **Validates itself**: known-zero catalog cross-checks, error-bound honesty checks (does the claimed precision match the actual residual?), and eta-series-vs-functional-equation agreement checks — three independent validation passes, not one.
+* **Visualizes** ζ(s) via domain colouring across the complex plane and plots |ζ(s)| along the critical line, backed by the same live evaluation and zero-finding pipeline used everywhere else (not a separate, unverified rendering path).
+* **Benchmarks itself** with JMH — every performance claim in this project's history is backed by a measured before/after, never an assumption.
+* **Is observable**: structured logging (SLF4J/Logback, MDC-tagged by scan mode) and Micrometer metrics (evaluation counts, scan duration, minima found/discarded), with a reader that turns the metrics back into a human-readable summary.
 
 ## Architecture
-'''
+
+```text
 com.riemannlab
 ├── core.complex Complex value type (record) and complex-valued exp/log/pow
 ├── core.numeric Series acceleration, Newton-Raphson and secant root finders
@@ -29,7 +30,7 @@ com.riemannlab
 ├── viz Domain-colouring and critical-line plot rendering
 ├── app.cli Runnable demos exercising each stage of the pipeline
 └── bench JMH benchmarks for evaluator and scanner throughput
-'''
+```
 
 The design separates **detection** (cheap, approximate, must not miss anything) from **refinement** (expensive, precise, only runs on plausible candidates) — see the JavaDoc on `CriticalLineScanner` and `ZeroRefiner` for the reasoning.
 
