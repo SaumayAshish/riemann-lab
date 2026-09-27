@@ -31,6 +31,7 @@
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.12</logback.version>
         <jmh.version>1.37</jmh.version>
+        <micrometer.version>1.14.2</micrometer.version>
 
         <compiler.plugin.version>3.13.0</compiler.plugin.version>
         <surefire.plugin.version>3.5.2</surefire.plugin.version>
@@ -90,6 +91,16 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Metrics facade and default in-memory implementation. Unlike the
+     slf4j-api/logback-classic split above, SimpleMeterRegistry ships
+     inside this same artifact, so it's compile-scope: our code
+     constructs one directly as a sensible default. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <version>${micrometer.version}</version>
         </dependency>
 
     </dependencies>

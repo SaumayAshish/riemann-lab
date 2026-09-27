@@ -3,6 +3,10 @@ package com.riemannlab.zeros;
 import com.riemannlab.core.complex.Complex;
 import com.riemannlab.zeta.ZetaEvaluator;
 import com.riemannlab.zeta.ZetaResult;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +53,12 @@ import org.slf4j.MDC;
  * independent per point. Both pairs are proven to agree exactly on the same
  * input; see the correctness test.</p>
  *
+ * <p><strong>Observability.</strong> Every log line written during a scan
+ * carries an MDC {@code scanMode} tag ("sequential" or "parallel") so the two
+ * paths' otherwise-identical messages can be told apart when both run in the
+ * same process. Metrics are tagged the same way, via Micrometer, so counters
+ * and timers for each path can be queried separately from one registry.</p>
+ *
  * <p>Immutable and thread-safe, given a thread-safe evaluator.</p>
  */
 public final class CriticalLineScanner {
@@ -67,14 +77,33 @@ public final class CriticalLineScanner {
     private static final double RISKY_STEP_DIVISOR = 4.0;
 
     private final ZetaEvaluator evaluator;
+    private final MeterRegistry registry;
 
     /**
-     * Creates a scanner driven by the given evaluator.
+     * Creates a scanner driven by the given evaluator, with its own private,
+     * in-memory metrics registry.
+     *
+     * <p>Convenient for tests and standalone use. An application wiring
+     * several components together should prefer {@link #CriticalLineScanner(ZetaEvaluator, MeterRegistry)}
+     * with one shared registry, so every component's metrics land in the
+     * same place.</p>
      *
      * @param evaluator the evaluator to sample with; must not be null
      */
     public CriticalLineScanner(ZetaEvaluator evaluator) {
+        this(evaluator, new SimpleMeterRegistry());
+    }
+
+    /**
+     * Creates a scanner driven by the given evaluator, recording metrics to
+     * the given registry.
+     *
+     * @param evaluator the evaluator to sample with; must not be null
+     * @param registry  the registry to record counters and timers to; must not be null
+     */
+    public CriticalLineScanner(ZetaEvaluator evaluator, MeterRegistry registry) {
         this.evaluator = Objects.requireNonNull(evaluator, "evaluator must not be null");
+        this.registry = Objects.requireNonNull(registry, "registry must not be null");
     }
 
     /**
@@ -100,6 +129,9 @@ public final class CriticalLineScanner {
             int sampleCount = (int) Math.round((endHeight - startHeight) / step);
             long startNanos = System.nanoTime();
 
+            Counter evaluationsCounter =
+                    registry.counter("riemannlab.scan.evaluations", "mode", "sequential");
+
             List<ZeroCandidate> candidates = new ArrayList<>();
 
             double magnitudeBefore = Double.NaN;
@@ -107,9 +139,12 @@ public final class CriticalLineScanner {
             double errorBoundAt = Double.NaN;
 
             for (int i = 0; i <= sampleCount; i++) {
+                // Computed from the index rather than accumulated, so the sample
+                // heights stay exact and the bracket endpoints can be trusted.
                 double t = startHeight + i * step;
 
                 ZetaResult result = evaluator.evaluate(Complex.of(CRITICAL_LINE_REAL_PART, t));
+                evaluationsCounter.increment();
                 double magnitudeAfter = result.value().magnitude();
 
                 boolean haveThreeSamples = i >= 2;
@@ -136,10 +171,14 @@ public final class CriticalLineScanner {
                 errorBoundAt = result.estimatedErrorBound();
             }
 
+            long elapsedNanos = System.nanoTime() - startNanos;
+            registry.timer("riemannlab.scan.duration", "mode", "sequential")
+                    .record(Duration.ofNanos(elapsedNanos));
+
             log.info("Scanned t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
                     startHeight, endHeight, step, evaluator.name(),
                     sampleCount + 1, candidates.size(),
-                    (System.nanoTime() - startNanos) / 1_000_000);
+                    elapsedNanos / 1_000_000);
 
             return List.copyOf(candidates);
         } finally {
@@ -165,7 +204,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanForZeros(double startHeight, double endHeight, double step) {
-        return filterPlausible(scan(startHeight, endHeight, step));
+        return filterPlausible(scan(startHeight, endHeight, step), "sequential");
     }
 
     /**
@@ -198,12 +237,30 @@ public final class CriticalLineScanner {
             int sampleCount = (int) Math.round((endHeight - startHeight) / step);
             long startNanos = System.nanoTime();
 
+            Counter evaluationsCounter =
+                    registry.counter("riemannlab.scan.evaluations", "mode", "parallel");
+
+            // The expensive, independent-per-point part: evaluated concurrently.
+            // IntStream.rangeClosed is an ordered source, and mapToObj/toArray
+            // preserve that order even when .parallel() is used, so results[i]
+            // is always the evaluation at sample index i - exactly as if the
+            // loop below had produced it sequentially. Counter.increment() is
+            // safe to call from every worker thread concurrently - unlike MDC,
+            // which is thread-local and would not have reached these workers.
             ZetaResult[] results = IntStream.rangeClosed(0, sampleCount)
                     .parallel()
-                    .mapToObj(i -> evaluator.evaluate(
-                            Complex.of(CRITICAL_LINE_REAL_PART, startHeight + i * step)))
+                    .mapToObj(i -> {
+                        ZetaResult result = evaluator.evaluate(
+                                Complex.of(CRITICAL_LINE_REAL_PART, startHeight + i * step));
+                        evaluationsCounter.increment();
+                        return result;
+                    })
                     .toArray(ZetaResult[]::new);
 
+            // The cheap, order-dependent part: run sequentially over the
+            // precomputed array. Mirrors scan()'s window logic exactly, just
+            // indexed by the centre sample c instead of carried in rolling
+            // variables.
             List<ZeroCandidate> candidates = new ArrayList<>();
 
             for (int c = 1; c < sampleCount; c++) {
@@ -229,10 +286,14 @@ public final class CriticalLineScanner {
                 }
             }
 
+            long elapsedNanos = System.nanoTime() - startNanos;
+            registry.timer("riemannlab.scan.duration", "mode", "parallel")
+                    .record(Duration.ofNanos(elapsedNanos));
+
             log.info("Scanned (parallel) t in [{}, {}] step {} using {}: {} evaluations, {} minima, {} ms",
                     startHeight, endHeight, step, evaluator.name(),
                     sampleCount + 1, candidates.size(),
-                    (System.nanoTime() - startNanos) / 1_000_000);
+                    elapsedNanos / 1_000_000);
 
             return List.copyOf(candidates);
         } finally {
@@ -251,7 +312,7 @@ public final class CriticalLineScanner {
      * @throws IllegalArgumentException if the range or step is unusable
      */
     public List<ZeroCandidate> scanForZerosParallel(double startHeight, double endHeight, double step) {
-        return filterPlausible(scanParallel(startHeight, endHeight, step));
+        return filterPlausible(scanParallel(startHeight, endHeight, step), "parallel");
     }
 
     /**
@@ -284,7 +345,7 @@ public final class CriticalLineScanner {
         return averageZeroSpacing(height) / SAMPLES_PER_ZERO_GAP;
     }
 
-    private List<ZeroCandidate> filterPlausible(List<ZeroCandidate> allMinima) {
+    private List<ZeroCandidate> filterPlausible(List<ZeroCandidate> allMinima, String mode) {
         List<ZeroCandidate> plausible = allMinima.stream()
                 .filter(ZeroCandidate::looksLikeZero)
                 .toList();
@@ -294,6 +355,11 @@ public final class CriticalLineScanner {
             log.info("Discarded {} of {} local minima as too shallow to contain a zero",
                     discarded, allMinima.size());
         }
+
+        registry.counter("riemannlab.scan.minima.found", "mode", mode)
+                .increment(allMinima.size());
+        registry.counter("riemannlab.scan.minima.discarded", "mode", mode)
+                .increment(discarded);
 
         return plausible;
     }
