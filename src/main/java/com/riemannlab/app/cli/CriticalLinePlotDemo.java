@@ -51,7 +51,13 @@ public final class CriticalLinePlotDemo {
         throw new AssertionError(
                 "CriticalLinePlotDemo is an entry point and must not be instantiated");
     }
-    /** Renders and saves a plot of zeta along the critical line. */
+    /**
+     * Renders and saves a plot of zeta along the critical line.
+     *
+     * @param args unused
+     * @throws IOException if the image cannot be written to disk
+     */
+
     public static void main(String[] args) throws IOException {
         printHeader();
 

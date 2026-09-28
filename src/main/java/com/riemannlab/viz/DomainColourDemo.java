@@ -46,7 +46,12 @@ public final class DomainColourDemo {
     private DomainColourDemo() {
         throw new AssertionError("DomainColourDemo is an entry point and must not be instantiated");
     }
-    /** Renders and saves a domain-coloured plot of zeta over a region of the complex plane. */
+    /**
+     * Renders and saves a domain-coloured plot of zeta over a region of the complex plane.
+     *
+     * @param args unused
+     * @throws IOException if the image cannot be written to disk
+     */
     public static void main(String[] args) throws IOException {
         System.out.println();
         System.out.println("RiemannLab - domain colouring");

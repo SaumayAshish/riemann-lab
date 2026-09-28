@@ -49,7 +49,11 @@ public final class ContinuationDemo {
     private ContinuationDemo() {
         throw new AssertionError("ContinuationDemo is an entry point and must not be instantiated");
     }
-    /** Demonstrates zeta evaluation via analytic continuation. */
+    /**
+     * Demonstrates zeta evaluation via analytic continuation.
+     *
+     * @param args unused
+     */
     public static void main(String[] args) {
         printHeader();
         printNegativeIntegers();

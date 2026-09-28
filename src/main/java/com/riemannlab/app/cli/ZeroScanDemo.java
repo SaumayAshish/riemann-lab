@@ -57,7 +57,11 @@ public final class ZeroScanDemo {
     private ZeroScanDemo() {
         throw new AssertionError("ZeroScanDemo is an entry point and must not be instantiated");
     }
-    /** Demonstrates scanning the critical line for zero candidates. */
+    /**
+     * Demonstrates scanning the critical line for zero candidates.
+     *
+     * @param args unused
+     */
     public static void main(String[] args) {
         printHeader();
 

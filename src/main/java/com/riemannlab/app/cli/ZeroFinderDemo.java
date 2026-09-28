@@ -66,11 +66,15 @@ public final class ZeroFinderDemo {
         Complex.of(0.80, 25.00),
         Complex.of(0.30, 30.40)
     };
-    /** Demonstrates finding a zero of zeta. */
+
     private ZeroFinderDemo() {
         throw new AssertionError("ZeroFinderDemo is an entry point and must not be instantiated");
     }
-
+    /**
+     * Demonstrates finding a zero of zeta.
+     *
+     * @param args unused
+     */
     public static void main(String[] args) {
         printHeader();
 
