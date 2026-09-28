@@ -41,7 +41,7 @@ public final class ConvergenceDemo {
     private ConvergenceDemo() {
         throw new AssertionError("ConvergenceDemo is an entry point and must not be instantiated");
     }
-
+    /** Demonstrates the convergence behaviour of the zeta series. */
     public static void main(String[] args) {
         System.out.println();
         System.out.println("RiemannLab - Dirichlet series convergence experiment");

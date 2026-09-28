@@ -50,7 +50,7 @@ public final class ValidationRunner {
     private ValidationRunner() {
         throw new AssertionError("ValidationRunner is an entry point and must not be instantiated");
     }
-
+    /** Runs the validation checks against known zeta values and known zeros. */
     public static void main(String[] args) {
         printHeader();
 

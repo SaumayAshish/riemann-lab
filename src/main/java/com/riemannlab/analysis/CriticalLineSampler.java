@@ -25,11 +25,21 @@ public final class CriticalLineSampler {
 
     private final ZetaEvaluator evaluator;
 
+    /**
+     * Creates a sampler that evaluates zeta with the given evaluator.
+     *
+     * @param evaluator the function to sample along the critical line; must not be null
+     */
     public CriticalLineSampler(ZetaEvaluator evaluator) {
         this.evaluator = Objects.requireNonNull(evaluator, "evaluator must not be null");
     }
 
-    /** The magnitude of zeta at a single height on the critical line. */
+    /**
+     * The magnitude of zeta at a single height on the critical line.
+     *
+     * @param height the imaginary part of the point to sample; must be finite
+     * @return the sample at that height
+     */
     public CriticalLineSample sampleAt(double height) {
         if (!Double.isFinite(height)) {
             throw new IllegalArgumentException("height must be finite, got " + height);
@@ -43,6 +53,13 @@ public final class CriticalLineSampler {
     /**
      * {@code sampleCount} evenly spaced samples from {@code minHeight} to
      * {@code maxHeight}, inclusive of both ends.
+     *
+     * @param minHeight the smallest height to sample; must be less than
+     *                  {@code maxHeight}
+     * @param maxHeight the largest height to sample; must exceed
+     *                  {@code minHeight}
+     * @param sampleCount the number of samples to take; must be at least 2
+     * @return the samples, in increasing height order
      */
     public List<CriticalLineSample> sample(double minHeight, double maxHeight, int sampleCount) {
         if (!(maxHeight > minHeight)) {

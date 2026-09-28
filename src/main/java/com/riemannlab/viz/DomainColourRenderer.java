@@ -36,6 +36,8 @@ public final class DomainColourRenderer {
     private final ZetaEvaluator evaluator;
 
     /**
+     * Creates a renderer backed by the given evaluator.
+     *
      * @param evaluator the function to draw; must not be null and must be
      *                  thread-safe
      */

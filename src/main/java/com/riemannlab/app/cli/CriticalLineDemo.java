@@ -44,7 +44,7 @@ public final class CriticalLineDemo {
     private CriticalLineDemo() {
         throw new AssertionError("CriticalLineDemo is an entry point and must not be instantiated");
     }
-
+    /** Demonstrates sampling zeta along the critical line. */
     public static void main(String[] args) {
         printHeader();
         scanTheCriticalLine();

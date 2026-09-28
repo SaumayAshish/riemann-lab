@@ -37,7 +37,7 @@ public final class RootFindingDemo {
     private RootFindingDemo() {
         throw new AssertionError("RootFindingDemo is an entry point and must not be instantiated");
     }
-
+    /** Demonstrates root finding for zeta. */
     public static void main(String[] args) {
         System.out.println();
         System.out.println("RiemannLab - root finder behaviour on known problems");

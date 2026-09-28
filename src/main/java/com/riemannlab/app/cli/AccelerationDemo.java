@@ -51,7 +51,7 @@ public final class AccelerationDemo {
     private AccelerationDemo() {
         throw new AssertionError("AccelerationDemo is an entry point and must not be instantiated");
     }
-
+    /** Demonstrates convergence acceleration for the eta series. */
     public static void main(String[] args) {
         System.out.println();
         System.out.println("RiemannLab - convergence acceleration measurements");

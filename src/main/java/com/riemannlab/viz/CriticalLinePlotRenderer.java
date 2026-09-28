@@ -34,7 +34,22 @@ public final class CriticalLinePlotRenderer {
     private static final float AXIS_STROKE_WIDTH = 1.0f;
     private static final float MARKER_STROKE_WIDTH = 1.2f;
 
-    /** Renders the given samples, with the given zero heights marked. */
+    /** Creates a renderer with the default colour scheme and margins. */
+    public CriticalLinePlotRenderer() {
+    }
+
+    /**
+     * Renders the given samples, with the given zero heights marked.
+     *
+     * @param samples the curve to draw, in increasing height order; must
+     *                have at least two elements
+     * @param zeroHeights heights already established to be zeros; a marker
+     *                    is drawn for each one that falls within the
+     *                    sampled height range
+     * @param widthPixels the image width in pixels
+     * @param heightPixels the image height in pixels
+     * @return the rendered image
+     */
     public BufferedImage render(
             List<CriticalLineSample> samples, List<Double> zeroHeights,
             int widthPixels, int heightPixels) {

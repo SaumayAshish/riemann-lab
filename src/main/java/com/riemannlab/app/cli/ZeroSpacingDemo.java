@@ -39,7 +39,7 @@ public final class ZeroSpacingDemo {
     private ZeroSpacingDemo() {
         throw new AssertionError("ZeroSpacingDemo is an entry point and must not be instantiated");
     }
-
+    /** Demonstrates computing spacing statistics between zeros. */
     public static void main(String[] args) throws IOException {
         printHeader();
 

@@ -38,6 +38,10 @@ import org.openjdk.jmh.infra.Blackhole;
 @Fork(1)
 public class EvaluatorThroughputBenchmark {
 
+    /** Creates a benchmark instance. JMH constructs one per fork. */
+    public EvaluatorThroughputBenchmark() {
+    }
+
     /**
      * Term count for the naive evaluator. Its own JavaDoc notes that on
      * the critical line, twenty thousand terms buy about three decimal
@@ -46,17 +50,35 @@ public class EvaluatorThroughputBenchmark {
      */
     private static final int NAIVE_TERM_COUNT = 20_000;
 
+    /**
+     * Per-iteration JMH state: the point to evaluate at, and one
+     * evaluator of each kind, rebuilt once per trial rather than once per
+     * invocation so the benchmark measures evaluation, not construction.
+     */
     @State(Scope.Benchmark)
     public static class Evaluators {
 
+        /** Creates an uninitialized state; JMH populates it via {@link #setUp()}. */
+        public Evaluators() {
+        }
+
+        /** The imaginary part of the point on the critical line to evaluate at. */
         @Param({"10.0", "50.0", "100.0"})
         public double height;
 
+        /** The point {@code 1/2 + i * height} shared by all three evaluators. */
         public Complex point;
+
+        /** Evaluates eta by direct summation of {@link #NAIVE_TERM_COUNT} terms. */
         public ZetaEvaluator naive;
+
+        /** Evaluates eta using convergence acceleration. */
         public ZetaEvaluator accelerated;
+
+        /** Evaluates zeta via analytic continuation, backed by {@link #accelerated}. */
         public ZetaEvaluator continued;
 
+        /** Builds {@link #point} and the three evaluators before each trial. */
         @Setup(Level.Trial)
         public void setUp() {
             point = Complex.of(0.5, height);
@@ -66,16 +88,34 @@ public class EvaluatorThroughputBenchmark {
         }
     }
 
+    /**
+     * Measures the naive evaluator's throughput.
+     *
+     * @param state the shared benchmark state
+     * @param blackhole consumes the result so the JIT cannot eliminate the call
+     */
     @Benchmark
     public void naiveEta(Evaluators state, Blackhole blackhole) {
         blackhole.consume(state.naive.evaluate(state.point));
     }
 
+    /**
+     * Measures the accelerated evaluator's throughput.
+     *
+     * @param state the shared benchmark state
+     * @param blackhole consumes the result so the JIT cannot eliminate the call
+     */
     @Benchmark
     public void acceleratedEta(Evaluators state, Blackhole blackhole) {
         blackhole.consume(state.accelerated.evaluate(state.point));
     }
 
+    /**
+     * Measures the continued evaluator's throughput.
+     *
+     * @param state the shared benchmark state
+     * @param blackhole consumes the result so the JIT cannot eliminate the call
+     */
     @Benchmark
     public void continuedZeta(Evaluators state, Blackhole blackhole) {
         blackhole.consume(state.continued.evaluate(state.point));

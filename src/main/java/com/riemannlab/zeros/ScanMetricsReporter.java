@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Reads the Micrometer metrics that {@link CriticalLineScanner} records and
- * turns them into a human-readable summary — the consumer side of Phase 7's
+ * turns them into a human-readable summary - the consumer side of Phase 7's
  * metrics work. Without this class, the counters and timer only prove
  * themselves inside unit tests; this is what lets a real run be inspected.
  *
@@ -28,6 +28,7 @@ public final class ScanMetricsReporter {
      *
      * @param registry the registry the scanner was constructed with
      * @param mode {@link CriticalLineScanner#MODE_SEQUENTIAL} or {@link CriticalLineScanner#MODE_PARALLEL}
+     * @return the summary for that mode; zero-valued fields if nothing was recorded
      */
     public static ScanMetricsSummary summarize(MeterRegistry registry, String mode) {
         Objects.requireNonNull(registry, "registry must not be null");
@@ -48,7 +49,12 @@ public final class ScanMetricsReporter {
                 discarded == null ? 0L : (long) discarded.count());
     }
 
-    /** Formats the sequential and parallel summaries as a two-line, human-readable report. */
+    /**
+     * Formats the sequential and parallel summaries as a two-line, human-readable report.
+     *
+     * @param registry the registry the scanner was constructed with
+     * @return the formatted report
+     */
     public static String report(MeterRegistry registry) {
         ScanMetricsSummary sequential = summarize(registry, CriticalLineScanner.MODE_SEQUENTIAL);
         ScanMetricsSummary parallel = summarize(registry, CriticalLineScanner.MODE_PARALLEL);

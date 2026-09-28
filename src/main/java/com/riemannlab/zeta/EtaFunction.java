@@ -5,7 +5,7 @@ import com.riemannlab.core.complex.ComplexMath;
 import com.riemannlab.core.numeric.AlternatingSeriesAccelerator;
 
 /**
- * the Dirichlet eta function,
+ * The Dirichlet eta function,
  * {@code eta(s) = sum from n=1 to infinity of (-1)^(n-1) / n^s}, evaluated as
  * a partial sum over a finite number of terms.
  *
@@ -15,32 +15,30 @@ import com.riemannlab.core.numeric.AlternatingSeriesAccelerator;
  * critical strip, which is why this function rather than the defining series
  * is the computational basis of RiemannLab.</p>
  *
- * <p><strong>Accuracy, </strong> By the alternating series test, the error
+ * <p><strong>Accuracy:</strong> By the alternating series test, the error
  * after {@code N} terms is bounded by the size of term {@code N + 1}, which is
  * {@code N^-Re(s)}. On the critical line that is {@code 1/sqrt(N)}: a million
- * terms buys about three decimal places. Convergent but slow , which is enough
+ * terms buys about three decimal places. Convergent but slow, which is enough
  * to see a zero and not enough to locate one.</p>
  */
-
 public final class EtaFunction {
 
     private EtaFunction() {
         throw new AssertionError("EtaFunction is utility class and must not be instantiated");
-
     }
 
     /**
      * Sums the first {@code termCount} terms of the alternating series
      * {@code sum (-1)^(n-1) / n^s}.
      *
-     * @param s
-     * @param termCount
-     * @return the partial sum after {@code termCount} is less than 1
+     * @param s the complex exponent
+     * @param termCount the number of terms to sum; must be at least 1
+     * @return the partial sum after {@code termCount} terms
      */
     public static Complex partialSum(Complex s, int termCount) {
         if (termCount < 1) {
             throw new IllegalArgumentException(
-                    "termcount must be at least 1, but wes " + termCount);
+                    "termCount must be at least 1, but got " + termCount);
         }
         Complex negatedExponent = Complex.ZERO.subtract(s);
         Complex sum = Complex.ZERO;
@@ -53,6 +51,7 @@ public final class EtaFunction {
 
         return sum;
     }
+
     /**
      * Evaluates eta using convergence acceleration instead of naive summation.
      *
@@ -74,5 +73,4 @@ public final class EtaFunction {
                 k -> ComplexMath.pow(Complex.ofReal(k + 1), negatedExponent),
                 order);
     }
-
 }
