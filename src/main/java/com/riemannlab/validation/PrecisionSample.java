@@ -12,9 +12,15 @@ import java.util.Objects;
  * "was the evaluator honest about how accurate it was?" An error bound
  * that is routinely too small is more dangerous than one that is
  * pessimistic, because code downstream trusts it.</p>
+ *
+ * @param s the real point at which the evaluator was tested
+ * @param computedValue the value the evaluator actually returned
+ * @param exactValue the known exact value of zeta(s)
+ * @param claimedErrorBound the error bound the evaluator claimed for its answer
  */
 public record PrecisionSample(double s, Complex computedValue, double exactValue, double claimedErrorBound) {
 
+    /** Validates that {@code s} and {@code exactValue} are finite, {@code computedValue} is non-null, and {@code claimedErrorBound} is finite and non-negative. */
     public PrecisionSample {
         if (!Double.isFinite(s)) {
             throw new IllegalArgumentException("s must be finite, got " + s);
@@ -29,7 +35,11 @@ public record PrecisionSample(double s, Complex computedValue, double exactValue
         }
     }
 
-    /** How far the computed value actually landed from the known exact value. */
+    /**
+     * How far the computed value actually landed from the known exact value.
+     *
+     * @return the actual error
+     */
     public double actualError() {
         return computedValue.subtract(Complex.ofReal(exactValue)).magnitude();
     }
@@ -44,6 +54,8 @@ public record PrecisionSample(double s, Complex computedValue, double exactValue
      * error gives {@link Double#POSITIVE_INFINITY}, since dividing by a
      * zero bound is otherwise undefined and "infinitely over budget" is
      * the honest description of that outcome.</p>
+     *
+     * @return the ratio of actual error to claimed bound
      */
     public double errorRatio() {
         double error = actualError();
@@ -53,7 +65,11 @@ public record PrecisionSample(double s, Complex computedValue, double exactValue
         return error / claimedErrorBound;
     }
 
-    /** Whether the actual error stayed within what the evaluator claimed. */
+    /**
+     * Whether the actual error stayed within what the evaluator claimed.
+     *
+     * @return {@code true} if the actual error did not exceed the claimed bound
+     */
     public boolean isWithinClaimedBound() {
         return actualError() <= claimedErrorBound;
     }

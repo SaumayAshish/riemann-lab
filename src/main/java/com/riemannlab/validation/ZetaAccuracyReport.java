@@ -12,9 +12,12 @@ import java.util.Objects;
  * summarizes whether a claimed zero survived refinement, this one
  * summarizes whether two unrelated ways of computing zeta agree with each
  * other at all.</p>
+ *
+ * @param samples the batch of agreement measurements this report summarizes
  */
 public record ZetaAccuracyReport(List<ZetaAgreementSample> samples) {
 
+    /** Validates that {@code samples} is non-null and non-empty, and defensively copies it. */
     public ZetaAccuracyReport {
         Objects.requireNonNull(samples, "samples must not be null");
         if (samples.isEmpty()) {
@@ -23,6 +26,7 @@ public record ZetaAccuracyReport(List<ZetaAgreementSample> samples) {
         samples = List.copyOf(samples);
     }
 
+    /** How many samples this report covers. */
     public int count() {
         return samples.size();
     }

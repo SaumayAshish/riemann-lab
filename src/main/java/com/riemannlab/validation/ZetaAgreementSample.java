@@ -11,9 +11,14 @@ import java.util.Objects;
  * <p>Both routes are valid for {@code 0 < Re(s) < 1}, so any disagreement
  * between them is evidence of a bug in one path or the other; it is not
  * something either evaluator can catch by checking itself.</p>
+ *
+ * @param point the point s at which zeta was computed both ways
+ * @param directValue zeta(s) computed directly by the accelerated eta series
+ * @param reflectedValue zeta(s) computed by reflecting through the functional equation
  */
 public record ZetaAgreementSample(Complex point, Complex directValue, Complex reflectedValue) {
 
+    /** Validates that none of the three values are null. */
     public ZetaAgreementSample {
         Objects.requireNonNull(point, "point must not be null");
         Objects.requireNonNull(directValue, "directValue must not be null");

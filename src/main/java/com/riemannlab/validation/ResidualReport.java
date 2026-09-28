@@ -18,9 +18,12 @@ import java.util.Objects;
  * happened, so a demo or a test can ask "how did this batch do" as one
  * structured object instead of re-deriving the same statistics from a
  * printed table.</p>
+ *
+ * @param entries the batch of refinement results this report summarizes
  */
 public record ResidualReport(List<RefinedZero> entries) {
 
+    /** Validates that {@code entries} is non-null and non-empty, and defensively copies it. */
     public ResidualReport {
         Objects.requireNonNull(entries, "entries must not be null");
         entries = List.copyOf(entries);

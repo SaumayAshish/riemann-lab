@@ -10,6 +10,10 @@ package com.riemannlab.analysis;
  * would claim two zeros sit on top of each other, which has never
  * happened, and NaN says "not applicable" instead of "measured as
  * zero."</p>
+ *
+ * @param index the 1-based position of this zero in the table
+ * @param height the imaginary part gamma_n of this zero
+ * @param spacingFromPrevious gamma_n minus gamma_(n-1), or {@code NaN} for the first entry
  */
 public record ZeroSpacing(int index, double height, double spacingFromPrevious) {
 

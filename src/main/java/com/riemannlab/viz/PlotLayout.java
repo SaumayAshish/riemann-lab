@@ -10,6 +10,14 @@ package com.riemannlab.viz;
  *
  * <p>A margin is reserved on every side for the axes, so the plotted curve
  * never touches the edge of the image.</p>
+ *
+ * @param minHeight the smallest height (imaginary part) plotted, mapped to the left edge
+ * @param maxHeight the largest height (imaginary part) plotted, mapped to the right edge
+ * @param minMagnitude the smallest magnitude plotted, mapped to the bottom edge
+ * @param maxMagnitude the largest magnitude plotted, mapped to the top edge
+ * @param widthPixels the full image width in pixels, including both side margins
+ * @param heightPixels the full image height in pixels, including both top/bottom margins
+ * @param margin the number of pixels reserved on every side for axes
  */
 public record PlotLayout(
         double minHeight,
@@ -20,6 +28,10 @@ public record PlotLayout(
         int heightPixels,
         int margin) {
 
+    /**
+     * Validates that the height and magnitude ranges are non-empty, the margin is
+     * non-negative, and the plot area is larger than its margins.
+     */
     public PlotLayout {
         if (!(maxHeight > minHeight)) {
             throw new IllegalArgumentException(
@@ -40,29 +52,51 @@ public record PlotLayout(
         }
     }
 
-    /** The plotting area's width in pixels, after both side margins. */
+    /**
+     * The plotting area's width in pixels, after both side margins.
+     *
+     * @return the plot width in pixels
+     */
     public int plotWidth() {
         return widthPixels - 2 * margin;
     }
 
-    /** The plotting area's height in pixels, after both top/bottom margins. */
+    /**
+     * The plotting area's height in pixels, after both top/bottom margins.
+     *
+     * @return the plot height in pixels
+     */
     public int plotHeight() {
         return heightPixels - 2 * margin;
     }
 
-    /** The pixel column a given height maps to. */
+    /**
+     * The pixel column a given height maps to.
+     *
+     * @param height the height (imaginary part) to convert
+     * @return the corresponding pixel column
+     */
     public double xPixel(double height) {
         double fraction = (height - minHeight) / (maxHeight - minHeight);
         return margin + fraction * plotWidth();
     }
 
-    /** The pixel row a given magnitude maps to - larger magnitude, smaller row. */
+    /**
+     * The pixel row a given magnitude maps to - larger magnitude, smaller row.
+     *
+     * @param magnitude the magnitude to convert
+     * @return the corresponding pixel row
+     */
     public double yPixel(double magnitude) {
         double fraction = (magnitude - minMagnitude) / (maxMagnitude - minMagnitude);
         return margin + (1.0 - fraction) * plotHeight();
     }
 
-    /** The row the x-axis (magnitude = minMagnitude) is drawn on. */
+    /**
+     * The row the x-axis (magnitude = minMagnitude) is drawn on.
+     *
+     * @return the pixel row of the baseline
+     */
     public double baselineRow() {
         return yPixel(minMagnitude);
     }
