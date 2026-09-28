@@ -21,7 +21,11 @@ public record PrecisionReport(List<PrecisionSample> samples) {
         samples = List.copyOf(samples);
     }
 
-    /** How many samples this report covers. */
+    /**
+     * How many samples this report covers.
+     *
+     * @return the number of samples in this report
+     */
     public int count() {
         return samples.size();
     }

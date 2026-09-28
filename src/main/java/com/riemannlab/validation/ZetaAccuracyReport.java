@@ -26,12 +26,20 @@ public record ZetaAccuracyReport(List<ZetaAgreementSample> samples) {
         samples = List.copyOf(samples);
     }
 
-    /** How many samples this report covers. */
+    /**
+     * How many samples this report covers.
+     *
+     * @return the number of samples in this report
+     */
     public int count() {
         return samples.size();
     }
 
-    /** The largest absolute difference seen across every sample. */
+    /**
+     * The largest absolute difference seen across every sample.
+     *
+     * @return the worst absolute difference in this batch
+     */
     public double worstAbsoluteDifference() {
         return samples.stream()
                 .mapToDouble(ZetaAgreementSample::absoluteDifference)
@@ -39,7 +47,11 @@ public record ZetaAccuracyReport(List<ZetaAgreementSample> samples) {
                 .orElseThrow();
     }
 
-    /** The mean absolute difference across every sample. */
+    /**
+     * The mean absolute difference across every sample.
+     *
+     * @return the mean absolute difference in this batch
+     */
     public double meanAbsoluteDifference() {
         return samples.stream()
                 .mapToDouble(ZetaAgreementSample::absoluteDifference)
@@ -54,6 +66,8 @@ public record ZetaAccuracyReport(List<ZetaAgreementSample> samples) {
      * <p>{@code NaN} if every sample landed exactly on a zero - which would
      * mean no sample in the batch could answer the question this method
      * asks.</p>
+     *
+     * @return the worst relative difference, or {@code NaN} if none is defined
      */
     public double worstRelativeDifference() {
         return samples.stream()
