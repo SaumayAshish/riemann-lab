@@ -31,6 +31,14 @@ public final class PrecisionChecker {
         throw new AssertionError("PrecisionChecker is a utility class and must not be instantiated");
     }
 
+    /**
+     * Evaluates the given evaluator at every reference point and pairs each
+     * result with the known exact value and the evaluator's own claimed error.
+     *
+     * @param evaluator the evaluator under test
+     * @param references the points with known exact values to test against
+     * @return one sample per reference point
+     */
     public static List<PrecisionSample> check(ZetaEvaluator evaluator, List<KnownZetaValue> references) {
         Objects.requireNonNull(evaluator, "evaluator must not be null");
         Objects.requireNonNull(references, "references must not be null");

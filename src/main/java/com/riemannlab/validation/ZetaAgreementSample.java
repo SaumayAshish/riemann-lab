@@ -25,7 +25,11 @@ public record ZetaAgreementSample(Complex point, Complex directValue, Complex re
         Objects.requireNonNull(reflectedValue, "reflectedValue must not be null");
     }
 
-    /** How far apart the two computed values are, in absolute terms. */
+    /**
+     * How far apart the two computed values are, in absolute terms.
+     *
+     * @return the absolute difference between the direct and reflected values
+     */
     public double absoluteDifference() {
         return directValue.subtract(reflectedValue).magnitude();
     }
@@ -37,6 +41,8 @@ public record ZetaAgreementSample(Complex point, Complex directValue, Complex re
      * exactly zero, since there is nothing to take a fraction of. That can
      * only happen at a non-trivial zero itself, which none of this
      * project's cross-validation sample points are chosen to land on.</p>
+     *
+     * @return the relative difference, or {@code NaN} if the direct value is zero
      */
     public double relativeDifference() {
         double referenceMagnitude = directValue.magnitude();

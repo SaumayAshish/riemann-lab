@@ -19,7 +19,7 @@ import com.riemannlab.core.complex.Complex;
  *                            {@code value}; an estimate, not a guarantee
  */
 public record ZetaResult(Complex value, int termsUsed, double estimatedErrorBound) {
-
+    /** Validates that at least one term was used and the error bound is non-negative. */
     public ZetaResult {
         if (termsUsed < 1) {
             throw new IllegalArgumentException("termsUsed must be at least 1, was " + termsUsed);

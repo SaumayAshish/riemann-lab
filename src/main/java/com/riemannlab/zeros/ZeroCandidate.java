@@ -66,7 +66,7 @@ public record ZeroCandidate(
      * slightly under that to allow for curvature in the real function.</p>
      */
     private static final double MINIMUM_RELATIVE_DROP = 0.4;
-
+    /** Validates that stepSize is positive, all three magnitudes and the error bound are non-negative, and the sampled magnitude is actually a local minimum. */
     public ZeroCandidate {
         if (!(stepSize > 0.0)) {
             throw new IllegalArgumentException("stepSize must be positive, was " + stepSize);

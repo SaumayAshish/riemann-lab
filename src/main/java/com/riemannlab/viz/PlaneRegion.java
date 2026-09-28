@@ -29,6 +29,7 @@ public record PlaneRegion(
         double minImaginary, double maxImaginary,
         int widthPixels, int heightPixels) {
 
+    /** Validates that the real and imaginary ranges are non-empty and that both pixel dimensions are at least 1. */
     public PlaneRegion {
         if (!(maxReal > minReal)) {
             throw new IllegalArgumentException(
@@ -48,18 +49,38 @@ public record PlaneRegion(
         }
     }
 
+    /**
+     * The width of the rectangle along the real axis.
+     *
+     * @return maxReal minus minReal
+     */
     public double realSpan() {
         return maxReal - minReal;
     }
 
+    /**
+     * The height of the rectangle along the imaginary axis.
+     *
+     * @return maxImaginary minus minImaginary
+     */
     public double imaginarySpan() {
         return maxImaginary - minImaginary;
     }
 
+    /**
+     * The real-axis distance spanned by one pixel column.
+     *
+     * @return realSpan() divided by widthPixels
+     */
     public double realPerPixel() {
         return realSpan() / widthPixels;
     }
 
+    /**
+     * The imaginary-axis distance spanned by one pixel row.
+     *
+     * @return imaginarySpan() divided by heightPixels
+     */
     public double imaginaryPerPixel() {
         return imaginarySpan() / heightPixels;
     }
@@ -98,7 +119,11 @@ public record PlaneRegion(
         return realPerPixel() / imaginaryPerPixel();
     }
 
-    /** Total sample count, which is also the number of zeta evaluations. */
+    /**
+     * Total sample count, which is also the number of zeta evaluations.
+     *
+     * @return widthPixels multiplied by heightPixels
+     */
     public long sampleCount() {
         return (long) widthPixels * heightPixels;
     }

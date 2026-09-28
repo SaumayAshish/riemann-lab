@@ -55,7 +55,7 @@ public record RefinedZero(
          */
         LEFT_DOMAIN
     }
-
+    /** Validates that neither point is null, the outcome is non-null, both magnitudes are non-negative, and neither cost is negative. */
     public RefinedZero {
         Objects.requireNonNull(startingPoint, "startingPoint must not be null");
         Objects.requireNonNull(location, "location must not be null");

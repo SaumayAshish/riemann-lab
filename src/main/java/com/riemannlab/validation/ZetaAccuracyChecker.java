@@ -19,6 +19,14 @@ public final class ZetaAccuracyChecker {
         throw new AssertionError("ZetaAccuracyChecker is a utility class and must not be instantiated");
     }
 
+    /**
+     * Evaluates both evaluators at every given point and pairs up their results.
+     *
+     * @param direct the evaluator computing zeta(s) directly
+     * @param reflected the evaluator computing zeta(s) via the functional equation
+     * @param points the points to evaluate both evaluators at
+     * @return one agreement sample per point
+     */
     public static List<ZetaAgreementSample> check(
             ZetaEvaluator direct, ZetaEvaluator reflected, List<Complex> points) {
         Objects.requireNonNull(direct, "direct must not be null");

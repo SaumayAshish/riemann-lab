@@ -7,7 +7,7 @@ import java.util.Objects;
  * (sequential or parallel), read back from a
  * {@link io.micrometer.core.instrument.MeterRegistry}.
  *
- * <p>Every field defaults to zero when no matching meter exists yet — for
+ * <p>Every field defaults to zero when no matching meter exists yet - for
  * example, if only {@code scanParallel} has ever been called, the sequential
  * summary is all zeros rather than an error. A summary reports exactly what
  * {@link CriticalLineScanner} recorded; it never estimates or infers.
@@ -29,11 +29,16 @@ public record ScanMetricsSummary(
         long minimaFound,
         long minimaDiscarded) {
 
+    /** Validates that mode is non-null. */
     public ScanMetricsSummary {
         Objects.requireNonNull(mode, "mode must not be null");
     }
 
-    /** @return the minima that survived plausibility filtering (found minus discarded) */
+    /**
+     * The minima that survived plausibility filtering.
+     *
+     * @return minimaFound minus minimaDiscarded
+     */
     public long minimaAccepted() {
         return minimaFound - minimaDiscarded;
     }

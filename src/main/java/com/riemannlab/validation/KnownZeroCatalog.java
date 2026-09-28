@@ -28,12 +28,21 @@ public final class KnownZeroCatalog {
                 "KnownZeroCatalog is a constant source and must not be instantiated");
     }
 
-    /** The published heights this catalogue knows, in ascending order. */
+    /**
+     * The published heights this catalogue knows, in ascending order.
+     *
+     * @return a defensive copy of the known heights
+     */
     public static double[] firstElevenHeights() {
         return FIRST_ELEVEN_HEIGHTS.clone(); // defensive copy - arrays are mutable
     }
 
-    /** The reference height for the nth zero (1-indexed), or empty if not catalogued. */
+    /**
+     * The reference height for the nth zero (1-indexed), or empty if not catalogued.
+     *
+     * @param n the 1-based index of the zero to look up
+     * @return the known height, or empty if n is out of range
+     */
     public static OptionalDouble heightOf(int n) {
         if (n < 1 || n > FIRST_ELEVEN_HEIGHTS.length) {
             return OptionalDouble.empty();
@@ -41,7 +50,11 @@ public final class KnownZeroCatalog {
         return OptionalDouble.of(FIRST_ELEVEN_HEIGHTS[n - 1]);
     }
 
-    /** How many heights this catalogue knows. */
+    /**
+     * How many heights this catalogue knows.
+     *
+     * @return the number of catalogued heights
+     */
     public static int count() {
         return FIRST_ELEVEN_HEIGHTS.length;
     }

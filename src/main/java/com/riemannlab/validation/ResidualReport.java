@@ -32,17 +32,30 @@ public record ResidualReport(List<RefinedZero> entries) {
         }
     }
 
-    /** How many entries this report covers, regardless of outcome. */
+    /**
+     * How many entries this report covers, regardless of outcome.
+     *
+     * @return the total number of entries
+     */
     public int total() {
         return entries.size();
     }
 
-    /** How many entries had the given outcome. */
+    /**
+     * How many entries had the given outcome.
+     *
+     * @param outcome the outcome to count
+     * @return the number of entries with that outcome
+     */
     public long countOf(RefinedZero.Outcome outcome) {
         return entries.stream().filter(entry -> entry.outcome() == outcome).count();
     }
 
-    /** A count for every possible outcome, including ones that did not occur. */
+    /**
+     * A count for every possible outcome, including ones that did not occur.
+     *
+     * @return a map from each possible outcome to its count in this report
+     */
     public Map<RefinedZero.Outcome, Long> outcomeCounts() {
         Map<RefinedZero.Outcome, Long> counts = new EnumMap<>(RefinedZero.Outcome.class);
         for (RefinedZero.Outcome outcome : RefinedZero.Outcome.values()) {
@@ -51,7 +64,11 @@ public record ResidualReport(List<RefinedZero> entries) {
         return counts;
     }
 
-    /** Only the entries whose outcome was {@link RefinedZero.Outcome#CONFIRMED}. */
+    /**
+     * Only the entries whose outcome was {@link RefinedZero.Outcome#CONFIRMED}.
+     *
+     * @return the confirmed entries in this report
+     */
     public List<RefinedZero> confirmed() {
         return entries.stream().filter(RefinedZero::isConfirmed).toList();
     }
@@ -60,6 +77,8 @@ public record ResidualReport(List<RefinedZero> entries) {
      * The largest residual among confirmed zeros - the weakest case in this
      * batch for "this is really a zero." {@code NaN} if nothing here was
      * confirmed.
+     *
+     * @return the worst confirmed residual, or {@code NaN} if none were confirmed
      */
     public double worstConfirmedResidual() {
         return confirmed().stream()
@@ -75,6 +94,8 @@ public record ResidualReport(List<RefinedZero> entries) {
      * confirmed entry's error bound is positive, which is how every
      * evaluator in this project computes it. {@code NaN} if nothing here
      * was confirmed.
+     *
+     * @return the worst confirmed residual ratio, or {@code NaN} if none were confirmed
      */
     public double worstConfirmedResidualRatio() {
         return confirmed().stream()
@@ -86,6 +107,8 @@ public record ResidualReport(List<RefinedZero> entries) {
     /**
      * The largest distance from the critical line among confirmed zeros.
      * {@code NaN} if nothing here was confirmed.
+     *
+     * @return the worst deviation from the critical line, or {@code NaN} if none were confirmed
      */
     public double worstDeviationFromCriticalLine() {
         return confirmed().stream()

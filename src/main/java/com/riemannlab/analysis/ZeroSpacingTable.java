@@ -26,6 +26,9 @@ public final class ZeroSpacingTable {
      * Builds the spacing table for the given heights, which must already be
      * sorted in strictly ascending order - the order zeros naturally come
      * out of a scan run from low to high.
+     *
+     * @param heights the zero heights, strictly ascending
+     * @return the spacing table, one entry per height
      */
     public static List<ZeroSpacing> compute(List<Double> heights) {
         Objects.requireNonNull(heights, "heights must not be null");

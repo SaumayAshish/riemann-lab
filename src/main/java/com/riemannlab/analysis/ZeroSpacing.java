@@ -17,6 +17,7 @@ package com.riemannlab.analysis;
  */
 public record ZeroSpacing(int index, double height, double spacingFromPrevious) {
 
+    /** Validates that index is at least 1, height is finite, and spacingFromPrevious is either NaN or a positive finite number. */
     public ZeroSpacing {
         if (index < 1) {
             throw new IllegalArgumentException("index must be at least 1, got " + index);
@@ -33,7 +34,11 @@ public record ZeroSpacing(int index, double height, double spacingFromPrevious) 
         }
     }
 
-    /** Whether this is the first entry in its table, with no previous zero. */
+    /**
+     * Whether this is the first entry in its table, with no previous zero.
+     *
+     * @return {@code true} if this entry has no previous zero to compare against
+     */
     public boolean isFirst() {
         return Double.isNaN(spacingFromPrevious);
     }

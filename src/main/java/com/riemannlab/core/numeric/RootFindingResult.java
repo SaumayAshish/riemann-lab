@@ -60,7 +60,7 @@ public record RootFindingResult(
             return this == RESIDUAL_BELOW_TOLERANCE || this == STEP_BELOW_TOLERANCE;
         }
     }
-
+    /** Validates that iterates is non-null and non-empty, termination is non-null, and the residual is non-negative; defensively copies iterates. */
     public RootFindingResult {
         Objects.requireNonNull(iterates, "iterates must not be null");
         Objects.requireNonNull(termination, "termination must not be null");
